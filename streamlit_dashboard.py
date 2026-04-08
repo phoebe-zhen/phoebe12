@@ -219,6 +219,7 @@ with st.spinner("네이버 커머스 API에서 데이터를 불러오는 중..."
 if orders:
     _sample = orders[0].get("productOrder", orders[0])
     st.caption(f"🔍 샘플 필드: {list(_sample.keys())}")
+    st.caption(f"🔍 placeOrderDate: {_sample.get('placeOrderDate')} | status: {_sample.get('productOrderStatus')} | amount: {_sample.get('totalPaymentAmount')}")
 
 today_str = fetched_at.strftime("%Y년 %m월 %d일 (%a)")
 st.caption(f"기준일: {today_str}  |  마지막 조회: {fetched_at.strftime('%H:%M:%S')}  |  5분마다 자동 갱신")
