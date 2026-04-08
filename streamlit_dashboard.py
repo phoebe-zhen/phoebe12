@@ -336,7 +336,7 @@ try:
         o = wrap.get("productOrder", wrap)
         if o.get("productOrderStatus") in EXCLUDED_STATUSES:
             continue
-        paid_at = o.get("paymentDate") or o.get("orderedAt") or o.get("orderDate")
+        paid_at = o.get("placeOrderDate")
         if not paid_at:
             continue
         try:
