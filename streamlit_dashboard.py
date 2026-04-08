@@ -351,7 +351,13 @@ try:
         df_hourly.index = [f"{h:02d}시" for h in df_hourly.index]
         st.line_chart(df_hourly.rename("매출액 (원)"))
     else:
-        st.info("시간대별 데이터가 없습니다.")
+        # 첫 번째 주문의 키 목록 출력해서 날짜 필드명 확인
+        if orders:
+            sample = orders[0].get("productOrder", orders[0])
+            date_keys = [k for k in sample.keys() if "date" in k.lower() or "time" in k.lower() or "at" in k.lower()]
+            st.warning(f"날짜 필드를 찾을 수 없음. 주문 내 날짜 관련 필드: {date_keys}")
+        else:
+            st.info("시간대별 데이터가 없습니다.")
 except ImportError:
     st.warning("pandas가 필요합니다.")
 
