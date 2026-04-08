@@ -417,8 +417,8 @@ try:
 
         for product in df_opt["상품명"].unique():
             st.markdown(f"**{product}**")
-            df_p = df_opt[df_opt["상품명"] == product][["옵션", "수량"]].set_index("옵션")
-            st.bar_chart(df_p)
+            df_p = df_opt[df_opt["상품명"] == product][["옵션", "수량"]].reset_index(drop=True)
+            st.dataframe(df_p, use_container_width=True, hide_index=True)
     else:
         st.info("해당 상품 데이터가 없습니다.")
 except ImportError:
