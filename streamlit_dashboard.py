@@ -180,6 +180,18 @@ def load_today_data():
     return orders, now
 
 
+@st.cache_data(ttl=300)
+def load_yesterday_data():
+    yesterday = (datetime.now(KST) - timedelta(days=1)).date()
+    from_dt = datetime(yesterday.year, yesterday.month, yesterday.day, 0, 0, 0, tzinfo=KST)
+    to_dt   = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59, tzinfo=KST)
+
+    token  = get_access_token()
+    ids    = get_order_ids(token, from_dt, to_dt)
+    orders = get_order_details(token, ids)
+    return orders
+
+
 # ── Streamlit UI ──────────────────────────────────────────────────────────────
 
 st.set_page_config(
@@ -227,18 +239,29 @@ st.divider()
 
 # ── 상단 KPI 카드 ─────────────────────────────────────────────────────────────
 
-total_revenue    = calc_total_revenue(orders)
-total_orders     = len(orders)
-excluded_count   = sum(
+total_revenue  = calc_total_revenue(orders)
+total_orders   = len(orders)
+excluded_count = sum(
     1 for w in orders
     if w.get("productOrder", w).get("productOrderStatus") in EXCLUDED_STATUSES
 )
-valid_orders     = total_orders - excluded_count
+valid_orders   = total_orders - excluded_count
+aov            = total_revenue // valid_orders if valid_orders > 0 else 0
 
-c1, c2, c3 = st.columns(3)
+yesterday_orders  = load_yesterday_data()
+yesterday_revenue = calc_total_revenue(yesterday_orders)
+if yesterday_revenue > 0:
+    diff_pct = (total_revenue - yesterday_revenue) / yesterday_revenue * 100
+    diff_str = f"{diff_pct:+.1f}%"
+else:
+    diff_str = "어제 데이터 없음"
+
+c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("💰 오늘 총 매출", f"₩{total_revenue:,}")
-c2.metric("📋 전체 주문 건수", f"{total_orders}건")
-c3.metric("✅ 유효 주문 건수", f"{valid_orders}건", f"-{excluded_count}건 취소/반품")
+c2.metric("📅 어제 매출", f"₩{yesterday_revenue:,}", diff_str)
+c3.metric("📋 전체 주문 건수", f"{total_orders}건")
+c4.metric("✅ 유효 주문 건수", f"{valid_orders}건", f"-{excluded_count}건 취소/반품")
+c5.metric("🧾 객단가", f"₩{aov:,}")
 
 st.divider()
 
