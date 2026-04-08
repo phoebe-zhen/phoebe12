@@ -325,6 +325,38 @@ else:
 
 st.divider()
 
+# ── 시간대별 매출 추이 ────────────────────────────────────────────────────────
+
+st.subheader("⏱ 시간대별 매출 추이")
+
+try:
+    import pandas as pd
+    hourly_rows = []
+    for wrap in orders:
+        o = wrap.get("productOrder", wrap)
+        if o.get("productOrderStatus") in EXCLUDED_STATUSES:
+            continue
+        paid_at = o.get("paymentDate") or o.get("orderedAt") or o.get("orderDate")
+        if not paid_at:
+            continue
+        try:
+            dt = datetime.fromisoformat(paid_at.replace("Z", "+00:00")).astimezone(KST)
+            hourly_rows.append({"hour": dt.hour, "amount": int(o.get("totalPaymentAmount", 0))})
+        except Exception:
+            continue
+
+    if hourly_rows:
+        df_hourly = pd.DataFrame(hourly_rows)
+        df_hourly = df_hourly.groupby("hour")["amount"].sum().reindex(range(24), fill_value=0)
+        df_hourly.index = [f"{h:02d}시" for h in df_hourly.index]
+        st.line_chart(df_hourly.rename("매출액 (원)"))
+    else:
+        st.info("시간대별 데이터가 없습니다.")
+except ImportError:
+    st.warning("pandas가 필요합니다.")
+
+st.divider()
+
 # ── 전체 주문 목록 (접기) ──────────────────────────────────────────────────────
 
 with st.expander("📋 전체 주문 목록 보기"):
