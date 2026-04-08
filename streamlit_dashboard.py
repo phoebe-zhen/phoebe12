@@ -406,17 +406,10 @@ try:
         name = o.get("productName", "")
         if not any(t in name for t in TARGET_PRODUCTS):
             continue
-        option = o.get("optionCode", "") or o.get("optionName", "옵션없음")
+        raw_option = o.get("productOption", "") or ""
+        option = raw_option.replace("옵션: ", "").strip() or "옵션없음"
         qty    = int(o.get("quantity", 1))
         option_rows.append({"상품명": name, "옵션": option, "수량": qty})
-
-    # 첫 번째 해당 상품의 옵션 관련 필드 확인
-    for wrap in orders:
-        o = wrap.get("productOrder", wrap)
-        if any(t in o.get("productName", "") for t in TARGET_PRODUCTS):
-            opt_fields = {k: v for k, v in o.items() if "option" in k.lower() or "Option" in k}
-            st.caption(f"🔍 옵션 필드: {opt_fields}")
-            break
 
     if option_rows:
         df_opt = pd.DataFrame(option_rows).groupby(["상품명", "옵션"])["수량"].sum().reset_index()
