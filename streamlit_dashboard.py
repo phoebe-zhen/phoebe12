@@ -247,6 +247,11 @@ excluded_count = sum(
 )
 valid_orders   = total_orders - excluded_count
 aov            = total_revenue // valid_orders if valid_orders > 0 else 0
+total_qty      = sum(
+    int(w.get("productOrder", w).get("quantity", 1))
+    for w in orders
+    if w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES
+)
 
 yesterday_orders  = load_yesterday_data()
 yesterday_revenue = calc_total_revenue(yesterday_orders)
@@ -256,12 +261,13 @@ if yesterday_revenue > 0:
 else:
     diff_str = "어제 데이터 없음"
 
-c1, c2, c3, c4, c5 = st.columns(5)
+c1, c2, c3, c4, c5, c6 = st.columns(6)
 c1.metric("💰 오늘 총 매출", f"₩{total_revenue:,}")
 c2.metric("📅 어제 매출", f"₩{yesterday_revenue:,}", diff_str)
 c3.metric("📋 전체 주문 건수", f"{total_orders}건")
 c4.metric("✅ 유효 주문 건수", f"{valid_orders}건", f"-{excluded_count}건 취소/반품")
 c5.metric("🧾 객단가", f"₩{aov:,}")
+c6.metric("📦 총 판매량", f"{total_qty}개")
 
 st.divider()
 
