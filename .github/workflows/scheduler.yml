@@ -1,0 +1,28 @@
+name: 루카랩 스마트스토어 리포트
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # 매 시간 정각 실행 (UTC 기준, KST = UTC+9)
+  workflow_dispatch:        # 수동 실행 버튼
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 패키지 설치
+        run: pip install -r requirements.txt
+
+      - name: 리포트 실행
+        env:
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python dashboard.py
