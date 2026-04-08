@@ -79,7 +79,8 @@ def get_access_token() -> str:
         },
         timeout=10,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        raise Exception(f"인증 실패 ({resp.status_code}): {resp.text}")
     return resp.json()["access_token"]
 
 
