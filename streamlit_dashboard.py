@@ -390,6 +390,41 @@ except ImportError:
 
 st.divider()
 
+# ── 상품별 옵션 판매량 ────────────────────────────────────────────────────────
+
+st.subheader("📦 상품별 옵션 판매량")
+
+TARGET_PRODUCTS = ["기록책", "스크랩 더 모먼트 노트"]
+
+try:
+    import pandas as pd
+    option_rows = []
+    for wrap in orders:
+        o = wrap.get("productOrder", wrap)
+        if o.get("productOrderStatus") in EXCLUDED_STATUSES:
+            continue
+        name = o.get("productName", "")
+        if not any(t in name for t in TARGET_PRODUCTS):
+            continue
+        option = o.get("optionCode", "") or o.get("optionName", "옵션없음")
+        qty    = int(o.get("quantity", 1))
+        option_rows.append({"상품명": name, "옵션": option, "수량": qty})
+
+    if option_rows:
+        df_opt = pd.DataFrame(option_rows).groupby(["상품명", "옵션"])["수량"].sum().reset_index()
+        df_opt = df_opt.sort_values("수량", ascending=False)
+
+        for product in df_opt["상품명"].unique():
+            st.markdown(f"**{product}**")
+            df_p = df_opt[df_opt["상품명"] == product][["옵션", "수량"]].set_index("옵션")
+            st.bar_chart(df_p)
+    else:
+        st.info("해당 상품 데이터가 없습니다.")
+except ImportError:
+    st.warning("pandas가 필요합니다.")
+
+st.divider()
+
 # ── 전체 주문 목록 (접기) ──────────────────────────────────────────────────────
 
 with st.expander("📋 전체 주문 목록 보기"):
