@@ -216,6 +216,10 @@ with st.spinner("네이버 커머스 API에서 데이터를 불러오는 중..."
         st.error(f"데이터 로딩 실패: {e}")
         st.stop()
 
+if orders:
+    _sample = orders[0].get("productOrder", orders[0])
+    st.caption(f"🔍 샘플 필드: {list(_sample.keys())}")
+
 today_str = fetched_at.strftime("%Y년 %m월 %d일 (%a)")
 st.caption(f"기준일: {today_str}  |  마지막 조회: {fetched_at.strftime('%H:%M:%S')}  |  5분마다 자동 갱신")
 st.divider()
@@ -354,8 +358,7 @@ try:
         # 첫 번째 주문의 키 목록 출력해서 날짜 필드명 확인
         if orders:
             sample = orders[0].get("productOrder", orders[0])
-            date_keys = [k for k in sample.keys() if "date" in k.lower() or "time" in k.lower() or "at" in k.lower()]
-            st.warning(f"날짜 필드를 찾을 수 없음. 주문 내 날짜 관련 필드: {date_keys}")
+            st.warning(f"전체 필드 목록: {list(sample.keys())}")
         else:
             st.info("시간대별 데이터가 없습니다.")
 except ImportError:
