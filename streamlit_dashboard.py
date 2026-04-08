@@ -19,8 +19,8 @@ load_dotenv()
 def _get(key):
     """로컬은 .env, Streamlit Cloud는 st.secrets에서 읽기"""
     try:
-        return st.secrets[key]
-    except (KeyError, FileNotFoundError):
+        return str(st.secrets[key])
+    except Exception:
         return os.getenv(key)
 
 NAVER_CLIENT_ID     = _get("NAVER_CLIENT_ID")
@@ -196,6 +196,12 @@ with col_btn:
     if st.button("🔄 새로고침", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
+
+# 디버그: 시크릿 로딩 확인
+with st.expander("🔧 디버그 정보 (확인 후 삭제 예정)"):
+    st.write(f"CLIENT_ID 앞 5자: `{NAVER_CLIENT_ID[:5] if NAVER_CLIENT_ID else 'None'}`")
+    st.write(f"CLIENT_SECRET 앞 5자: `{NAVER_CLIENT_SECRET[:5] if NAVER_CLIENT_SECRET else 'None'}`")
+    st.write(f"ACCOUNT_ID: `{NAVER_ACCOUNT_ID}`")
 
 # 데이터 로딩
 with st.spinner("네이버 커머스 API에서 데이터를 불러오는 중..."):
