@@ -16,9 +16,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-NAVER_CLIENT_ID     = os.getenv("NAVER_CLIENT_ID")
-NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
-NAVER_ACCOUNT_ID    = os.getenv("NAVER_ACCOUNT_ID")
+def _get(key):
+    """로컬은 .env, Streamlit Cloud는 st.secrets에서 읽기"""
+    try:
+        return st.secrets[key]
+    except (KeyError, FileNotFoundError):
+        return os.getenv(key)
+
+NAVER_CLIENT_ID     = _get("NAVER_CLIENT_ID")
+NAVER_CLIENT_SECRET = _get("NAVER_CLIENT_SECRET")
+NAVER_ACCOUNT_ID    = _get("NAVER_ACCOUNT_ID")
 BASE_URL = "https://api.commerce.naver.com"
 KST      = timezone(timedelta(hours=9))
 
