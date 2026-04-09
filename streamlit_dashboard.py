@@ -210,6 +210,8 @@ def load_weekly_data():
 
 # ── Streamlit UI ──────────────────────────────────────────────────────────────
 
+import pandas as pd
+
 st.set_page_config(
     page_title="루카랩 스마트스토어 대시보드",
     page_icon="📦",
@@ -218,26 +220,28 @@ st.set_page_config(
 
 st.title("📦 루카랩 스마트스토어 실시간 대시보드")
 
-# 새로고침 버튼
 col_title, col_btn = st.columns([5, 1])
 with col_btn:
     if st.button("🔄 새로고침", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
 
-# 데이터 로딩
-with st.spinner("네이버 커머스 API에서 데이터를 불러오는 중..."):
+# ── 데이터 로딩 ───────────────────────────────────────────────────────────────
+
+with st.spinner("데이터 불러오는 중..."):
     try:
         orders, fetched_at = load_today_data()
     except Exception as e:
         st.error(f"데이터 로딩 실패: {e}")
         st.stop()
+    yesterday_orders  = load_yesterday_data()
+    weekly_data       = load_weekly_data()
 
 today_str = fetched_at.strftime("%Y년 %m월 %d일 (%a)")
 st.caption(f"기준일: {today_str}  |  마지막 조회: {fetched_at.strftime('%H:%M:%S')}  |  5분마다 자동 갱신")
 st.divider()
 
-# ── 상단 KPI 카드 ─────────────────────────────────────────────────────────────
+# ── 1. 오늘 요약 KPI ──────────────────────────────────────────────────────────
 
 total_revenue  = calc_total_revenue(orders)
 total_orders   = len(orders)
@@ -252,14 +256,8 @@ total_qty      = sum(
     for w in orders
     if w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES
 )
-
-yesterday_orders  = load_yesterday_data()
 yesterday_revenue = calc_total_revenue(yesterday_orders)
-if yesterday_revenue > 0:
-    diff_pct = (total_revenue - yesterday_revenue) / yesterday_revenue * 100
-    diff_str = f"{diff_pct:+.1f}%"
-else:
-    diff_str = "어제 데이터 없음"
+diff_str = f"{(total_revenue - yesterday_revenue) / yesterday_revenue * 100:+.1f}%" if yesterday_revenue > 0 else "어제 데이터 없음"
 
 c1, c2, c3, c4, c5, c6 = st.columns(6)
 c1.metric("💰 오늘 총 매출", f"₩{total_revenue:,}")
@@ -271,37 +269,47 @@ c6.metric("📦 총 판매량", f"{total_qty}개")
 
 st.divider()
 
-# ── 전일 / 주간 판매 요약 ──────────────────────────────────────────────────────
+# ── 2. 핵심 상품 성과 ─────────────────────────────────────────────────────────
 
-import pandas as pd
+TARGET_PRODUCTS = ["기록책", "스크랩 더 모먼트 노트"]
 
-# 전일 요약
+st.subheader("⭐ 핵심 상품 성과")
+
+def product_qty(order_list, keyword):
+    return sum(
+        int(w.get("productOrder", w).get("quantity", 1))
+        for w in order_list
+        if keyword in w.get("productOrder", w).get("productName", "")
+        and w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES
+    )
+
+for product in TARGET_PRODUCTS:
+    today_q = product_qty(orders, product)
+    yest_q  = product_qty(yesterday_orders, product)
+    pct     = f"{(today_q - yest_q) / yest_q * 100:+.1f}%" if yest_q > 0 else "-"
+    st.markdown(f"**{product}**")
+    p1, p2, p3 = st.columns(3)
+    p1.metric("오늘 판매수량", f"{today_q}개")
+    p2.metric("전일 판매수량", f"{yest_q}개")
+    p3.metric("증감률", pct)
+
+st.divider()
+
+# ── 3. 비교 요약 ──────────────────────────────────────────────────────────────
+
+st.subheader("📊 비교 요약")
+
+yest_valid = sum(
+    1 for w in yesterday_orders
+    if w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES
+)
 yest_qty = sum(
     int(w.get("productOrder", w).get("quantity", 1))
     for w in yesterday_orders
     if w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES
 )
-yest_valid = sum(
-    1 for w in yesterday_orders
-    if w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES
-)
-
-st.subheader("📅 전일 판매 요약")
-y1, y2, y3 = st.columns(3)
-y1.metric("매출", f"₩{yesterday_revenue:,}")
-y2.metric("주문수", f"{yest_valid}건")
-y3.metric("판매수량", f"{yest_qty}개")
-
-st.divider()
-
-# 주간 요약
-st.subheader("📆 주간 판매 요약 (최근 7일)")
-
-with st.spinner("7일 데이터 불러오는 중..."):
-    weekly_data = load_weekly_data()
-
 weekly_revenue = sum(calc_total_revenue(v) for v in weekly_data.values())
-weekly_orders  = sum(
+weekly_orders_cnt = sum(
     sum(1 for w in v if w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES)
     for v in weekly_data.values()
 )
@@ -314,35 +322,138 @@ weekly_qty = sum(
     for v in weekly_data.values()
 )
 
-w1, w2, w3 = st.columns(3)
-w1.metric("주간 매출", f"₩{weekly_revenue:,}")
-w2.metric("주간 주문수", f"{weekly_orders}건")
-w3.metric("주간 판매수량", f"{weekly_qty}개")
+col_y, col_w = st.columns(2)
+with col_y:
+    st.markdown("##### 📅 전일 판매 요약")
+    y1, y2, y3 = st.columns(3)
+    y1.metric("매출", f"₩{yesterday_revenue:,}")
+    y2.metric("주문수", f"{yest_valid}건")
+    y3.metric("판매수량", f"{yest_qty}개")
+with col_w:
+    st.markdown("##### 📆 주간 판매 요약 (최근 7일)")
+    w1, w2, w3 = st.columns(3)
+    w1.metric("주간 매출", f"₩{weekly_revenue:,}")
+    w2.metric("주간 주문수", f"{weekly_orders_cnt}건")
+    w3.metric("주간 판매수량", f"{weekly_qty}개")
 
 st.divider()
 
-# 최근 7일 매출 추이
-st.subheader("📈 최근 7일 매출 추이")
+# ── 4. 매출 흐름 분석 ─────────────────────────────────────────────────────────
 
-daily_rows = [
-    {"날짜": d.strftime("%m/%d"), "매출액": calc_total_revenue(v)}
-    for d, v in sorted(weekly_data.items())
-]
-df_daily = pd.DataFrame(daily_rows).set_index("날짜")
-st.line_chart(df_daily)
+st.subheader("📈 매출 흐름 분석")
+
+chart_l, chart_r = st.columns(2)
+
+with chart_l:
+    st.markdown("##### 최근 7일 매출 추이")
+    daily_rows = [
+        {"날짜": d.strftime("%m/%d"), "매출액": calc_total_revenue(v)}
+        for d, v in sorted(weekly_data.items())
+    ]
+    df_daily = pd.DataFrame(daily_rows).set_index("날짜")
+    st.line_chart(df_daily)
+
+with chart_r:
+    st.markdown("##### 시간대별 매출 추이 (오늘)")
+    hourly_rows = []
+    for wrap in orders:
+        o = wrap.get("productOrder", wrap)
+        if o.get("productOrderStatus") in EXCLUDED_STATUSES:
+            continue
+        paid_at = o.get("placeOrderDate")
+        if not paid_at:
+            continue
+        try:
+            dt = datetime.fromisoformat(paid_at.replace("Z", "+00:00")).astimezone(KST)
+            hourly_rows.append({"hour": dt.hour, "amount": int(o.get("totalPaymentAmount", 0))})
+        except Exception:
+            continue
+    if hourly_rows:
+        df_hourly = pd.DataFrame(hourly_rows).groupby("hour")["amount"].sum().reindex(range(24), fill_value=0)
+        df_hourly.index = [f"{h:02d}시" for h in df_hourly.index]
+        st.line_chart(df_hourly.rename("매출액 (원)"))
+    else:
+        st.info("시간대별 데이터가 없습니다.")
 
 st.divider()
 
-# ── 주문 상태별 현황 ──────────────────────────────────────────────────────────
+# ── 5. 상품 분석 ──────────────────────────────────────────────────────────────
 
-st.subheader("📊 주문 상태별 현황")
+st.subheader("🏆 상품 분석")
 
-agg     = aggregate_by_status(orders)
-statuses = list(STATUS_KR.keys())
+# 오늘 TOP5
+st.markdown("##### 오늘 판매 TOP 5")
+top_products = get_top_products(orders)
+if top_products:
+    rows_top = [
+        {"순위": i + 1, "상품명": name, "수량(개)": info["qty"], "매출액": f"₩{info['amount']:,}"}
+        for i, (name, info) in enumerate(top_products)
+    ]
+    st.dataframe(pd.DataFrame(rows_top).set_index("순위"), use_container_width=True)
+else:
+    st.info("판매 데이터가 없습니다.")
 
-# 데이터가 있는 상태만 필터
-present = [(s, STATUS_KR.get(s, s)) for s in statuses if agg["count"].get(s, 0) > 0]
-# 데이터 없는 미지 상태 추가
+# 오늘 옵션별 판매량
+with st.expander("📦 오늘 상품별 옵션 판매량"):
+    option_rows = []
+    for wrap in orders:
+        o = wrap.get("productOrder", wrap)
+        if o.get("productOrderStatus") in EXCLUDED_STATUSES:
+            continue
+        name = o.get("productName", "")
+        if not any(t in name for t in TARGET_PRODUCTS):
+            continue
+        raw_option = o.get("productOption", "") or ""
+        option = raw_option.replace("옵션: ", "").strip() or "옵션없음"
+        option_rows.append({"상품명": name, "옵션": option, "수량": int(o.get("quantity", 1))})
+
+    if option_rows:
+        df_opt = pd.DataFrame(option_rows).groupby(["상품명", "옵션"])["수량"].sum().reset_index()
+        df_opt = df_opt.sort_values("수량", ascending=False)
+        for product in df_opt["상품명"].unique():
+            st.markdown(f"**{product}**")
+            df_p = df_opt[df_opt["상품명"] == product][["옵션", "수량"]].reset_index(drop=True)
+            st.dataframe(df_p, use_container_width=True, hide_index=True)
+    else:
+        st.info("해당 상품 데이터가 없습니다.")
+
+# 전일 옵션별 판매량
+with st.expander("📦 전일 상품별 옵션 판매량"):
+    yest_option_rows = []
+    for wrap in yesterday_orders:
+        o = wrap.get("productOrder", wrap)
+        if o.get("productOrderStatus") in EXCLUDED_STATUSES:
+            continue
+        name = o.get("productName", "")
+        if not any(t in name for t in TARGET_PRODUCTS):
+            continue
+        raw_option = o.get("productOption", "") or ""
+        option = raw_option.replace("옵션: ", "").strip() or "옵션없음"
+        yest_option_rows.append({"상품명": name, "옵션": option, "수량": int(o.get("quantity", 1))})
+
+    if yest_option_rows:
+        df_yest = pd.DataFrame(yest_option_rows)
+        df_yest_total = df_yest.groupby("상품명")["수량"].sum().reset_index()
+        cols_yest = st.columns(len(df_yest_total))
+        for i, row in df_yest_total.iterrows():
+            cols_yest[i].metric(row["상품명"], f"{row['수량']}개")
+        st.markdown("---")
+        df_yest_opt = df_yest.groupby(["상품명", "옵션"])["수량"].sum().reset_index().sort_values("수량", ascending=False)
+        for product in df_yest_opt["상품명"].unique():
+            st.markdown(f"**{product}**")
+            df_p = df_yest_opt[df_yest_opt["상품명"] == product][["옵션", "수량"]].reset_index(drop=True)
+            st.dataframe(df_p, use_container_width=True, hide_index=True)
+    else:
+        st.info("전일 해당 상품 데이터가 없습니다.")
+
+st.divider()
+
+# ── 6. 주문 상태 및 이슈 ──────────────────────────────────────────────────────
+
+st.subheader("📋 주문 상태 및 이슈")
+
+agg      = aggregate_by_status(orders)
+present  = [(s, STATUS_KR.get(s, s)) for s in STATUS_KR if agg["count"].get(s, 0) > 0]
 for raw in agg["count"]:
     if raw not in STATUS_KR:
         present.append((raw, raw))
@@ -350,11 +461,10 @@ for raw in agg["count"]:
 if not present:
     st.info("오늘 주문 데이터가 없습니다.")
 else:
-    # 상태 카드 그리드
     cols = st.columns(min(len(present), 4))
     for idx, (raw, kr) in enumerate(present):
-        cnt = agg["count"].get(raw, 0)
-        amt = agg["amount"].get(raw, 0)
+        cnt   = agg["count"].get(raw, 0)
+        amt   = agg["amount"].get(raw, 0)
         color = STATUS_COLOR.get(kr, "#757575")
         with cols[idx % 4]:
             st.markdown(
@@ -374,183 +484,27 @@ else:
                 unsafe_allow_html=True,
             )
 
-    # 막대 차트 (수량 기준)
     st.markdown("#### 상태별 주문 수량")
     chart_data = {kr: agg["count"].get(raw, 0) for raw, kr in present}
-    # streamlit 기본 bar_chart용 dict → list
-    labels = list(chart_data.keys())
-    values = list(chart_data.values())
-
-    try:
-        import pandas as pd
-        df_chart = pd.DataFrame({"주문 건수": values}, index=labels)
-        st.bar_chart(df_chart)
-    except ImportError:
-        # pandas 없으면 텍스트 테이블로 대체
-        for k, v in chart_data.items():
-            bar = "█" * min(v, 40)
-            st.text(f"{k:8s} {bar} {v}건")
-
-st.divider()
-
-# ── TOP5 판매 상품 ────────────────────────────────────────────────────────────
-
-st.subheader("🏆 오늘 판매 TOP 5")
-
-top_products = get_top_products(orders)
-
-if not top_products:
-    st.info("판매 데이터가 없습니다.")
-else:
-    try:
-        import pandas as pd
-        rows = [
-            {
-                "순위": i + 1,
-                "상품명": name,
-                "수량(개)": info["qty"],
-                "매출액": f"₩{info['amount']:,}",
-            }
-            for i, (name, info) in enumerate(top_products)
-        ]
-        df = pd.DataFrame(rows).set_index("순위")
-        st.dataframe(df, use_container_width=True)
-    except ImportError:
-        for i, (name, info) in enumerate(top_products, 1):
-            st.write(f"{i}. **{name}** — {info['qty']}개 / ₩{info['amount']:,}")
-
-st.divider()
-
-# ── 시간대별 매출 추이 ────────────────────────────────────────────────────────
-
-st.subheader("⏱ 시간대별 매출 추이")
-
-try:
-    import pandas as pd
-    hourly_rows = []
-    for wrap in orders:
-        o = wrap.get("productOrder", wrap)
-        if o.get("productOrderStatus") in EXCLUDED_STATUSES:
-            continue
-        paid_at = o.get("placeOrderDate")
-        if not paid_at:
-            continue
-        try:
-            dt = datetime.fromisoformat(paid_at.replace("Z", "+00:00")).astimezone(KST)
-            hourly_rows.append({"hour": dt.hour, "amount": int(o.get("totalPaymentAmount", 0))})
-        except Exception:
-            continue
-
-    if hourly_rows:
-        df_hourly = pd.DataFrame(hourly_rows)
-        df_hourly = df_hourly.groupby("hour")["amount"].sum().reindex(range(24), fill_value=0)
-        df_hourly.index = [f"{h:02d}시" for h in df_hourly.index]
-        st.line_chart(df_hourly.rename("매출액 (원)"))
-    else:
-        st.info("시간대별 데이터가 없습니다.")
-except ImportError:
-    st.warning("pandas가 필요합니다.")
-
-st.divider()
-
-# ── 상품별 옵션 판매량 ────────────────────────────────────────────────────────
-
-st.subheader("📦 상품별 옵션 판매량")
-
-TARGET_PRODUCTS = ["기록책", "스크랩 더 모먼트 노트"]
-
-try:
-    import pandas as pd
-    option_rows = []
-    for wrap in orders:
-        o = wrap.get("productOrder", wrap)
-        if o.get("productOrderStatus") in EXCLUDED_STATUSES:
-            continue
-        name = o.get("productName", "")
-        if not any(t in name for t in TARGET_PRODUCTS):
-            continue
-        raw_option = o.get("productOption", "") or ""
-        option = raw_option.replace("옵션: ", "").strip() or "옵션없음"
-        qty    = int(o.get("quantity", 1))
-        option_rows.append({"상품명": name, "옵션": option, "수량": qty})
-
-    if option_rows:
-        df_opt = pd.DataFrame(option_rows).groupby(["상품명", "옵션"])["수량"].sum().reset_index()
-        df_opt = df_opt.sort_values("수량", ascending=False)
-
-        for product in df_opt["상품명"].unique():
-            st.markdown(f"**{product}**")
-            df_p = df_opt[df_opt["상품명"] == product][["옵션", "수량"]].reset_index(drop=True)
-            st.dataframe(df_p, use_container_width=True, hide_index=True)
-    else:
-        st.info("해당 상품 데이터가 없습니다.")
-except ImportError:
-    st.warning("pandas가 필요합니다.")
-
-st.divider()
-
-# ── 전일 상품 판매량 ──────────────────────────────────────────────────────────
-
-st.subheader("📦 전일 상품 판매량")
-
-yest_option_rows = []
-for wrap in yesterday_orders:
-    o = wrap.get("productOrder", wrap)
-    if o.get("productOrderStatus") in EXCLUDED_STATUSES:
-        continue
-    name = o.get("productName", "")
-    if not any(t in name for t in TARGET_PRODUCTS):
-        continue
-    raw_option = o.get("productOption", "") or ""
-    option = raw_option.replace("옵션: ", "").strip() or "옵션없음"
-    qty    = int(o.get("quantity", 1))
-    yest_option_rows.append({"상품명": name, "옵션": option, "수량": qty})
-
-if yest_option_rows:
-    df_yest = pd.DataFrame(yest_option_rows)
-
-    # 상품별 합계 (빠른 체크용)
-    df_yest_total = df_yest.groupby("상품명")["수량"].sum().reset_index()
-    df_yest_total.columns = ["상품명", "전일 총 판매수량"]
-    cols_yest = st.columns(len(df_yest_total))
-    for i, row in df_yest_total.iterrows():
-        cols_yest[i].metric(row["상품명"], f"{row['전일 총 판매수량']}개")
-
-    # 옵션별 상세 테이블
-    st.markdown("##### 옵션별 상세")
-    df_yest_opt = df_yest.groupby(["상품명", "옵션"])["수량"].sum().reset_index()
-    df_yest_opt = df_yest_opt.sort_values("수량", ascending=False)
-    for product in df_yest_opt["상품명"].unique():
-        st.markdown(f"**{product}**")
-        df_p = df_yest_opt[df_yest_opt["상품명"] == product][["옵션", "수량"]].reset_index(drop=True)
-        st.dataframe(df_p, use_container_width=True, hide_index=True)
-else:
-    st.info("전일 해당 상품 데이터가 없습니다.")
-
-st.divider()
-
-# ── 전체 주문 목록 (접기) ──────────────────────────────────────────────────────
+    df_chart = pd.DataFrame({"주문 건수": list(chart_data.values())}, index=list(chart_data.keys()))
+    st.bar_chart(df_chart)
 
 with st.expander("📋 전체 주문 목록 보기"):
-    try:
-        import pandas as pd
-        rows = []
-        for wrap in orders:
-            o = wrap.get("productOrder", wrap)
-            raw_status = o.get("productOrderStatus", "")
-            rows.append({
-                "주문번호":   o.get("productOrderId", ""),
-                "상품명":    o.get("productName", ""),
-                "수량":     int(o.get("quantity", 1)),
-                "금액":     f"₩{int(o.get('totalPaymentAmount', 0)):,}",
-                "상태":     STATUS_KR.get(raw_status, raw_status),
-            })
-        if rows:
-            st.dataframe(pd.DataFrame(rows), use_container_width=True)
-        else:
-            st.info("주문 없음")
-    except ImportError:
-        st.warning("pandas가 없어 전체 목록을 표시할 수 없습니다. `pip install pandas`로 설치하세요.")
+    rows_all = []
+    for wrap in orders:
+        o = wrap.get("productOrder", wrap)
+        raw_status = o.get("productOrderStatus", "")
+        rows_all.append({
+            "주문번호": o.get("productOrderId", ""),
+            "상품명":   o.get("productName", ""),
+            "수량":    int(o.get("quantity", 1)),
+            "금액":    f"₩{int(o.get('totalPaymentAmount', 0)):,}",
+            "상태":    STATUS_KR.get(raw_status, raw_status),
+        })
+    if rows_all:
+        st.dataframe(pd.DataFrame(rows_all), use_container_width=True)
+    else:
+        st.info("주문 없음")
 
 # ── 자동 새로고침 (5분) ────────────────────────────────────────────────────────
 
