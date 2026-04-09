@@ -369,12 +369,7 @@ try:
         df_hourly.index = [f"{h:02d}시" for h in df_hourly.index]
         st.line_chart(df_hourly.rename("매출액 (원)"))
     else:
-        # 첫 번째 주문의 키 목록 출력해서 날짜 필드명 확인
-        if orders:
-            sample = orders[0].get("productOrder", orders[0])
-            st.warning(f"전체 필드 목록: {list(sample.keys())}")
-        else:
-            st.info("시간대별 데이터가 없습니다.")
+        st.info("시간대별 데이터가 없습니다.")
 except ImportError:
     st.warning("pandas가 필요합니다.")
 
