@@ -209,17 +209,6 @@ with col_btn:
         st.cache_data.clear()
         st.rerun()
 
-# 디버그: 시크릿 로딩 확인
-with st.expander("🔧 디버그 정보 (확인 후 삭제 예정)"):
-    st.write(f"CLIENT_ID 앞 5자: `{NAVER_CLIENT_ID[:5] if NAVER_CLIENT_ID else 'None'}`")
-    st.write(f"CLIENT_SECRET 앞 5자: `{NAVER_CLIENT_SECRET[:5] if NAVER_CLIENT_SECRET else 'None'}`")
-    st.write(f"ACCOUNT_ID: `{NAVER_ACCOUNT_ID}`")
-    try:
-        my_ip = requests.get("https://api.ipify.org", timeout=5).text
-        st.write(f"서버 IP: `{my_ip}`")
-    except Exception:
-        st.write("서버 IP 확인 실패")
-
 # 데이터 로딩
 with st.spinner("네이버 커머스 API에서 데이터를 불러오는 중..."):
     try:
@@ -227,11 +216,6 @@ with st.spinner("네이버 커머스 API에서 데이터를 불러오는 중..."
     except Exception as e:
         st.error(f"데이터 로딩 실패: {e}")
         st.stop()
-
-if orders:
-    _sample = orders[0].get("productOrder", orders[0])
-    st.caption(f"🔍 샘플 필드: {list(_sample.keys())}")
-    st.caption(f"🔍 placeOrderDate: {_sample.get('placeOrderDate')} | status: {_sample.get('productOrderStatus')} | amount: {_sample.get('totalPaymentAmount')}")
 
 today_str = fetched_at.strftime("%Y년 %m월 %d일 (%a)")
 st.caption(f"기준일: {today_str}  |  마지막 조회: {fetched_at.strftime('%H:%M:%S')}  |  5분마다 자동 갱신")
