@@ -489,6 +489,46 @@ except ImportError:
 
 st.divider()
 
+# ── 전일 상품 판매량 ──────────────────────────────────────────────────────────
+
+st.subheader("📦 전일 상품 판매량")
+
+yest_option_rows = []
+for wrap in yesterday_orders:
+    o = wrap.get("productOrder", wrap)
+    if o.get("productOrderStatus") in EXCLUDED_STATUSES:
+        continue
+    name = o.get("productName", "")
+    if not any(t in name for t in TARGET_PRODUCTS):
+        continue
+    raw_option = o.get("productOption", "") or ""
+    option = raw_option.replace("옵션: ", "").strip() or "옵션없음"
+    qty    = int(o.get("quantity", 1))
+    yest_option_rows.append({"상품명": name, "옵션": option, "수량": qty})
+
+if yest_option_rows:
+    df_yest = pd.DataFrame(yest_option_rows)
+
+    # 상품별 합계 (빠른 체크용)
+    df_yest_total = df_yest.groupby("상품명")["수량"].sum().reset_index()
+    df_yest_total.columns = ["상품명", "전일 총 판매수량"]
+    cols_yest = st.columns(len(df_yest_total))
+    for i, row in df_yest_total.iterrows():
+        cols_yest[i].metric(row["상품명"], f"{row['전일 총 판매수량']}개")
+
+    # 옵션별 상세 테이블
+    st.markdown("##### 옵션별 상세")
+    df_yest_opt = df_yest.groupby(["상품명", "옵션"])["수량"].sum().reset_index()
+    df_yest_opt = df_yest_opt.sort_values("수량", ascending=False)
+    for product in df_yest_opt["상품명"].unique():
+        st.markdown(f"**{product}**")
+        df_p = df_yest_opt[df_yest_opt["상품명"] == product][["옵션", "수량"]].reset_index(drop=True)
+        st.dataframe(df_p, use_container_width=True, hide_index=True)
+else:
+    st.info("전일 해당 상품 데이터가 없습니다.")
+
+st.divider()
+
 # ── 전체 주문 목록 (접기) ──────────────────────────────────────────────────────
 
 with st.expander("📋 전체 주문 목록 보기"):
