@@ -192,6 +192,22 @@ def load_yesterday_data():
     return orders
 
 
+@st.cache_data(ttl=300)
+def load_weekly_data():
+    """오늘 포함 최근 7일 데이터를 날짜별로 반환 {date: [orders]}"""
+    token = get_access_token()
+    today = datetime.now(KST).date()
+    result = {}
+    for i in range(7):
+        d = today - timedelta(days=i)
+        from_dt = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=KST)
+        to_dt   = datetime(d.year, d.month, d.day, 23, 59, 59, tzinfo=KST)
+        ids    = get_order_ids(token, from_dt, to_dt)
+        orders = get_order_details(token, ids)
+        result[d] = orders
+    return result
+
+
 # ── Streamlit UI ──────────────────────────────────────────────────────────────
 
 st.set_page_config(
@@ -252,6 +268,68 @@ c3.metric("📋 전체 주문 건수", f"{total_orders}건")
 c4.metric("✅ 유효 주문 건수", f"{valid_orders}건", f"-{excluded_count}건 취소/반품")
 c5.metric("🧾 객단가", f"₩{aov:,}")
 c6.metric("📦 총 판매량", f"{total_qty}개")
+
+st.divider()
+
+# ── 전일 / 주간 판매 요약 ──────────────────────────────────────────────────────
+
+import pandas as pd
+
+# 전일 요약
+yest_qty = sum(
+    int(w.get("productOrder", w).get("quantity", 1))
+    for w in yesterday_orders
+    if w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES
+)
+yest_valid = sum(
+    1 for w in yesterday_orders
+    if w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES
+)
+
+st.subheader("📅 전일 판매 요약")
+y1, y2, y3 = st.columns(3)
+y1.metric("매출", f"₩{yesterday_revenue:,}")
+y2.metric("주문수", f"{yest_valid}건")
+y3.metric("판매수량", f"{yest_qty}개")
+
+st.divider()
+
+# 주간 요약
+st.subheader("📆 주간 판매 요약 (최근 7일)")
+
+with st.spinner("7일 데이터 불러오는 중..."):
+    weekly_data = load_weekly_data()
+
+weekly_revenue = sum(calc_total_revenue(v) for v in weekly_data.values())
+weekly_orders  = sum(
+    sum(1 for w in v if w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES)
+    for v in weekly_data.values()
+)
+weekly_qty = sum(
+    sum(
+        int(w.get("productOrder", w).get("quantity", 1))
+        for w in v
+        if w.get("productOrder", w).get("productOrderStatus") not in EXCLUDED_STATUSES
+    )
+    for v in weekly_data.values()
+)
+
+w1, w2, w3 = st.columns(3)
+w1.metric("주간 매출", f"₩{weekly_revenue:,}")
+w2.metric("주간 주문수", f"{weekly_orders}건")
+w3.metric("주간 판매수량", f"{weekly_qty}개")
+
+st.divider()
+
+# 최근 7일 매출 추이
+st.subheader("📈 최근 7일 매출 추이")
+
+daily_rows = [
+    {"날짜": d.strftime("%m/%d"), "매출액": calc_total_revenue(v)}
+    for d, v in sorted(weekly_data.items())
+]
+df_daily = pd.DataFrame(daily_rows).set_index("날짜")
+st.line_chart(df_daily)
 
 st.divider()
 
