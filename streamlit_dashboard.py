@@ -408,6 +408,26 @@ qty_diff = f"{(total_qty - yest_qty) / yest_qty * 100:+.1f}%" if yest_qty > 0 el
 _weekly_revenues = [calc_total_revenue(v) for d, v in weekly_data.items() if d != fetched_at.date()]
 avg_7days = int(sum(_weekly_revenues) / len(_weekly_revenues)) if _weekly_revenues else None
 
+# 객단가 비교
+yest_total_orders   = len(yesterday_orders)
+yest_excluded_count = calc_excluded_count(yesterday_orders)
+yest_valid_orders   = yest_total_orders - yest_excluded_count
+yest_aov = yesterday_revenue // yest_valid_orders if yest_valid_orders > 0 else 0
+_weekly_aovs = []
+for d, v in weekly_data.items():
+    if d == fetched_at.date():
+        continue
+    _rev = calc_total_revenue(v)
+    _excl = calc_excluded_count(v)
+    _valid = len(v) - _excl
+    if _valid > 0:
+        _weekly_aovs.append(_rev // _valid)
+avg_7days_aov = int(sum(_weekly_aovs) / len(_weekly_aovs)) if _weekly_aovs else None
+
+# 취소·반품율 비교
+cancel_rate_today = excluded_count / total_orders * 100 if total_orders > 0 else 0
+cancel_rate_yest  = yest_excluded_count / yest_total_orders * 100 if yest_total_orders > 0 else None
+
 k1, k2, k3, k4, k5 = st.columns(5)
 
 with k1:
@@ -421,11 +441,14 @@ with k1:
     """, unsafe_allow_html=True)
 
 with k2:
+    _cancel_sub = f"취소·반품 {excluded_count}건 ({cancel_rate_today:.1f}%)"
+    if cancel_rate_yest is not None:
+        _cancel_sub += f" · 전일 {cancel_rate_yest:.1f}%"
     st.markdown(f"""
     <div class="card">
         <div class="card-title">📋 오늘 주문수</div>
         <div class="card-value">{valid_orders}건</div>
-        <div class="card-sub">취소·반품 {excluded_count}건 포함 전체 {total_orders}건</div>
+        <div class="card-sub">{_cancel_sub}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -440,11 +463,17 @@ with k3:
     """, unsafe_allow_html=True)
 
 with k4:
+    _aov_parts = []
+    if yest_aov > 0:
+        _aov_parts.append(f"전일 ₩{yest_aov:,}")
+    if avg_7days_aov:
+        _aov_parts.append(f"7일 평균 ₩{avg_7days_aov:,}")
+    _aov_sub = " · ".join(_aov_parts) if _aov_parts else "&nbsp;"
     st.markdown(f"""
     <div class="card">
         <div class="card-title">🧾 객단가</div>
         <div class="card-value">₩{aov:,}</div>
-        <div class="card-sub">&nbsp;</div>
+        <div class="card-sub">{_aov_sub}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -655,8 +684,34 @@ with chart_r:
         peak_hour = int(df_h.idxmax())
         peak_val  = int(df_h.max())
         total_val = int(df_h.sum())
+
+        # 전일 동시간 매출 계산
+        yest_hourly = []
+        for wrap in yesterday_orders:
+            o = wrap.get("productOrder", wrap)
+            if o.get("productOrderStatus") in EXCLUDED_STATUSES:
+                continue
+            _paid = o.get("placeOrderDate")
+            if not _paid:
+                continue
+            try:
+                _dt = datetime.fromisoformat(_paid.replace("Z", "+00:00")).astimezone(KST)
+                yest_hourly.append({"hour": _dt.hour, "amount": int(o.get("totalPaymentAmount", 0))})
+            except Exception:
+                continue
+        yest_peak_val = 0
+        if yest_hourly:
+            df_yh = pd.DataFrame(yest_hourly).groupby("hour")["amount"].sum().reindex(range(24), fill_value=0)
+            yest_peak_val = int(df_yh.iloc[peak_hour])
+
         if total_val > 0 and peak_val / total_val >= 0.3:
-            st.caption(f"오늘 매출은 {peak_hour}시에 가장 집중되었습니다.")
+            caption_text = f"오늘 매출은 {peak_hour}시에 가장 집중되었습니다."
+            if yest_peak_val > 0:
+                diff_pct = (peak_val - yest_peak_val) / yest_peak_val * 100
+                caption_text += f" 전일 동시간 대비 {diff_pct:+.1f}%"
+            elif yest_peak_val == 0:
+                caption_text += " (전일 동시간 데이터 없음)"
+            st.caption(caption_text)
         else:
             st.caption("오늘은 특정 시간 집중 없이 분산된 흐름입니다.")
         df_h.index = [f"{h:02d}시" for h in df_h.index]
