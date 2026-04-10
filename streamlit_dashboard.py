@@ -711,7 +711,7 @@ def _rise_drop_rows(items, color_class, sign=""):
     for name, chg in items[:3]:
         rows += (
             f"<div style='display:flex;align-items:baseline;gap:10px;margin-top:10px'>"
-            f"<span class='{color_class}' style='font-size:28px;font-weight:700;line-height:1'>{sign}{chg}개</span>"
+            f"<span class='{color_class}' style='font-size:14px;font-weight:700'>{sign}{chg}개</span>"
             f"<span class='card-sub' style='font-size:14px;color:#444'>{name}</span>"
             f"</div>"
         )
