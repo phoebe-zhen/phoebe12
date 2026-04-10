@@ -456,8 +456,7 @@ with k5:
     <div class="card">
         <div class="card-title">📊 7일 평균 대비</div>
         <div class="card-value" style="color:{avg_color}; font-size:32px;">{avg_diff_str}</div>
-        <div class="card-sub">오늘 ₩{total_revenue:,}</div>
-        <div class="card-sub">7일 평균 {avg_val_str}</div>
+        <div class="card-sub">오늘 ₩{total_revenue:,} · 7일 평균 {avg_val_str}</div>
     </div>
     """, unsafe_allow_html=True)
 
