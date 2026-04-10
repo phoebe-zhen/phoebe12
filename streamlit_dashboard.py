@@ -444,6 +444,13 @@ with k2:
     _cancel_sub = f"취소·반품 {excluded_count}건 ({cancel_rate_today:.1f}%)"
     if cancel_rate_yest is not None:
         _cancel_sub += f" · 전일 {cancel_rate_yest:.1f}%"
+        _diff_rate = cancel_rate_today - cancel_rate_yest
+        if _diff_rate < -0.5:
+            _cancel_sub += " → 개선된 상태"
+        elif _diff_rate > 0.5:
+            _cancel_sub += " → 주의 필요"
+        else:
+            _cancel_sub += " → 유지 수준"
     st.markdown(f"""
     <div class="card">
         <div class="card-title">📋 오늘 주문수</div>
@@ -568,15 +575,15 @@ for tab, keyword in zip([tab1, tab2], TARGET_PRODUCTS):
                 core_qty = core_rows.iloc[0]["오늘"]
                 pct = round(core_qty / today_total * 100)
                 if pct >= 70:
-                    summary_lines.append(f"- 판매 집중: **{core_opt}** ({core_qty}개, {pct}%)")
+                    summary_lines.append(f"- 판매 집중: **{core_opt}** ({core_qty}개, 전체 {today_total}개 중 {pct}%)")
                 else:
-                    summary_lines.append(f"- 핵심 옵션: **{core_opt}** ({core_qty}개, {pct}%)")
+                    summary_lines.append(f"- 핵심 옵션: **{core_opt}** ({core_qty}개, 전체 {today_total}개 중 {pct}%)")
             if not drop_rows.empty:
                 for _, row in drop_rows.iterrows():
                     if row["전일"] > 0 and row["오늘"] == 0:
-                        summary_lines.append(f"- 판매 없음: **{row['옵션']}** (오늘 0개, 전일 {row['전일']}개)")
+                        summary_lines.append(f"- 판매 중단: **{row['옵션']}** (전일 {row['전일']}개 → 오늘 0개)")
                     else:
-                        summary_lines.append(f"- 급감: **{row['옵션']}** (오늘 {row['오늘']}개, 전일 {row['전일']}개)")
+                        summary_lines.append(f"- 급감: **{row['옵션']}** (전일 {row['전일']}개 → 오늘 {row['오늘']}개)")
             if summary_lines:
                 with st.container(border=True):
                     st.markdown("📌 **옵션 요약**")
