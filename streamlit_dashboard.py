@@ -391,6 +391,12 @@ with st.expander("🔧 디버그 정보"):
 st.divider()
 
 
+# ── 임시 디버깅 ───────────────────────────────────────────────────────────────
+if orders:
+    _o = orders[0].get("productOrder", orders[0])
+    _date_keys = [k for k in _o.keys() if "date" in k.lower() or "time" in k.lower()]
+    st.write("📋 날짜/시간 필드:", _date_keys)
+
 # ── 2. 상단 KPI ───────────────────────────────────────────────────────────────
 
 total_revenue    = calc_total_revenue(orders)
