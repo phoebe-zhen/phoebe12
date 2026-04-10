@@ -577,7 +577,7 @@ for tab, keyword in zip([tab1, tab2], TARGET_PRODUCTS):
             if not drop_rows.empty:
                 for _, row in drop_rows.iterrows():
                     if row["전일"] > 0 and row["오늘"] == 0:
-                        summary_lines.append(f"- 판매 중단: **{row['옵션']}** (전일 {row['전일']}개 → 오늘 0개)")
+                        summary_lines.append(f"- 판매 저조: **{row['옵션']}** (전일 {row['전일']}개 → 오늘 0개)")
                     else:
                         summary_lines.append(f"- 급감: **{row['옵션']}** (전일 {row['전일']}개 → 오늘 {row['오늘']}개)")
             if summary_lines:
@@ -653,7 +653,7 @@ if _rev_up:
     _insight_color = "green"
 else:
     if not _aov_up and _qty_up:
-        _insight = "판매량은 늘었지만 객단가 하락으로 매출이 감소했습니다."
+        _insight = "판매량은 늘었지만,<br>객단가 하락으로 매출이 감소했습니다."
     elif not _aov_up and not _qty_up:
         _insight = "객단가와 판매량이 함께 줄어 매출이 감소했습니다."
     elif not _ord_up:
