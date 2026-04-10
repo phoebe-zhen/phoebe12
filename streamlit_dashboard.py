@@ -451,11 +451,11 @@ with k2:
         _cancel_sub += f" · 전일 {cancel_rate_yest:.1f}%"
         _diff_rate = cancel_rate_today - cancel_rate_yest
         if _diff_rate < -0.5:
-            _cancel_sub += " → 개선된 상태"
+            _cancel_sub += " → 개선"
         elif _diff_rate > 0.5:
-            _cancel_sub += " → 주의 필요"
+            _cancel_sub += " → 주의"
         else:
-            _cancel_sub += " → 유지 수준"
+            _cancel_sub += " → 유지"
     st.markdown(f"""
     <div class="card">
         <div class="card-title">📋 오늘 주문수</div>
@@ -476,19 +476,26 @@ with k3:
     </div>
     """, unsafe_allow_html=True)
 
-# k4: 객단가 (전일 + 7일 평균)
+# k4: 객단가 (전일 + 7일 평균 각각 증감%)
 with k4:
-    _aov_parts = []
-    if yest_aov > 0:
-        _aov_parts.append(f"전일 ₩{yest_aov:,}")
-    if avg_7days_aov:
-        _aov_parts.append(f"7일 평균 ₩{avg_7days_aov:,}")
-    _aov_sub = " · ".join(_aov_parts) if _aov_parts else "&nbsp;"
+    _aov_yest_diff = f"{(aov - yest_aov) / yest_aov * 100:+.1f}%" if yest_aov > 0 else "-"
+    _aov_yest_color = "red" if aov < yest_aov else "green"
+    _aov_yest_line = (
+        f"전일 ₩{yest_aov:,} · <span class='{_aov_yest_color}'>{_aov_yest_diff}</span>"
+        if yest_aov > 0 else "&nbsp;"
+    )
+    _aov_avg_diff = f"{(aov - avg_7days_aov) / avg_7days_aov * 100:+.1f}%" if avg_7days_aov else "-"
+    _aov_avg_color = "red" if avg_7days_aov and aov < avg_7days_aov else "green"
+    _aov_avg_line = (
+        f"7일 평균 ₩{avg_7days_aov:,} · <span class='{_aov_avg_color}'>{_aov_avg_diff}</span>"
+        if avg_7days_aov else ""
+    )
     st.markdown(f"""
     <div class="card">
         <div class="card-title">🧾 객단가</div>
         <div class="card-value">₩{aov:,}</div>
-        <div class="card-sub">{_aov_sub}</div>
+        <div class="card-sub">{_aov_yest_line}</div>
+        <div class="card-sub">{_aov_avg_line}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -633,15 +640,32 @@ with col_w:
         w3.metric("주간 판매수량", f"{weekly_qty_s}개")
         w4.metric("일평균 매출", f"₩{daily_avg:,}")
 
-# 해석 문장
-if daily_avg > 0:
-    ratio = (total_revenue - daily_avg) / daily_avg * 100
-    direction = "높습니다" if ratio >= 0 else "낮습니다"
-    color = "green" if ratio >= 0 else "red"
-    st.markdown(
-        f"<span class='{color}'>오늘 매출은 최근 7일 일평균 대비 {abs(ratio):.1f}% {direction}.</span>",
-        unsafe_allow_html=True,
-    )
+# 자동 인사이트 문장
+_rev_up   = total_revenue >= yesterday_revenue
+_aov_up   = aov >= yest_aov if yest_aov > 0 else True
+_qty_up   = total_qty >= yest_qty
+_ord_up   = valid_orders >= _yest_valid
+
+if _rev_up:
+    _insight = "판매 증가로 매출이 상승했습니다."
+    if _aov_up and _qty_up:
+        _insight = "주문수와 객단가가 함께 올라 매출이 상승했습니다."
+    _insight_color = "green"
+else:
+    if not _aov_up and _qty_up:
+        _insight = "판매량은 늘었지만 객단가 하락으로 매출이 감소했습니다."
+    elif not _aov_up and not _qty_up:
+        _insight = "객단가와 판매량이 함께 줄어 매출이 감소했습니다."
+    elif not _ord_up:
+        _insight = "주문수 감소로 매출이 줄었습니다."
+    else:
+        _insight = "매출이 전일 대비 감소했습니다."
+    _insight_color = "red"
+
+st.markdown(
+    f"<span class='{_insight_color}' style='font-size:13px'>{_insight}</span>",
+    unsafe_allow_html=True,
+)
 
 st.divider()
 
