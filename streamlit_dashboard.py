@@ -215,12 +215,14 @@ def build_option_compare_df(today_opts: dict, yest_opts: dict) -> pd.DataFrame:
     all_options = sorted(set(today_opts) | set(yest_opts))
     rows = []
     max_today = max(today_opts.values(), default=0)
+    core_assigned = False
     for opt in all_options:
         t = today_opts.get(opt, 0)
         y = yest_opts.get(opt, 0)
         diff = t - y
-        if t == max_today and t > 0:
+        if not core_assigned and t == max_today and t > 0:
             note = "🔥 핵심"
+            core_assigned = True
         elif diff <= -3:
             note = "⚠ 급감"
         elif diff in (-1, -2):
