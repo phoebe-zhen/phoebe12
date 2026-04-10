@@ -397,7 +397,9 @@ yest_qty         = calc_total_qty(yesterday_orders)
 
 rev_diff = f"{(total_revenue - yesterday_revenue) / yesterday_revenue * 100:+.1f}%" if yesterday_revenue > 0 else "-"
 qty_diff = f"{(total_qty - yest_qty) / yest_qty * 100:+.1f}%" if yest_qty > 0 else "-"
-visitors = get_current_visitors()  # [방문수 placeholder]
+# 최근 7일 평균 매출 (오늘 제외)
+_weekly_revenues = [calc_total_revenue(v) for d, v in weekly_data.items() if d != fetched_at.date()]
+avg_7days = int(sum(_weekly_revenues) / len(_weekly_revenues)) if _weekly_revenues else None
 
 k1, k2, k3, k4, k5 = st.columns(5)
 
@@ -440,12 +442,22 @@ with k4:
     """, unsafe_allow_html=True)
 
 with k5:
-    visitor_str = f"{visitors}명" if visitors is not None else "방문수 데이터 없음"
+    if avg_7days and avg_7days > 0:
+        avg_diff_pct = (total_revenue - avg_7days) / avg_7days * 100
+        avg_color    = "green" if avg_diff_pct >= 0 else "red"
+        avg_diff_str = f"{avg_diff_pct:+.1f}%"
+        avg_val_str  = f"₩{avg_7days:,}"
+    else:
+        avg_color    = "#888"
+        avg_diff_str = "계산 불가"
+        avg_val_str  = "데이터 부족"
+
     st.markdown(f"""
     <div class="card">
-        <div class="card-title">👥 현재 방문수</div>
-        <div class="card-value">{visitor_str}</div>
-        <div class="card-sub">&nbsp;</div>
+        <div class="card-title">📊 7일 평균 대비</div>
+        <div class="card-value" style="color:{avg_color}; font-size:32px;">{avg_diff_str}</div>
+        <div class="card-sub">오늘 ₩{total_revenue:,}</div>
+        <div class="card-sub">7일 평균 {avg_val_str}</div>
     </div>
     """, unsafe_allow_html=True)
 
