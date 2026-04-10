@@ -368,6 +368,18 @@ with st.expander("🔧 디버그 정보"):
         st.write(f"서버 IP: `{_ip}`")
     except Exception:
         st.write("IP 확인 실패")
+    try:
+        _token = get_access_token()
+        # 채널 목록 조회 원본 응답 확인
+        _ch_resp = requests.get(
+            f"{BASE_URL}/external/v1/bizdata-stats/channels",
+            headers={"Authorization": f"Bearer {_token}"},
+            timeout=10,
+        )
+        st.write(f"채널 조회 상태: `{_ch_resp.status_code}`")
+        st.write(f"채널 조회 응답: `{_ch_resp.text[:300]}`")
+    except Exception as _e:
+        st.write(f"채널 조회 실패: {_e}")
 
 st.divider()
 
