@@ -480,7 +480,10 @@ for tab, keyword in zip([tab1, tab2], TARGET_PRODUCTS):
                     return "color: #f44336; font-weight:600"
                 return ""
 
-            styled = df_cmp.style.applymap(color_diff, subset=["증감"])
+            try:
+                styled = df_cmp.style.map(color_diff, subset=["증감"])
+            except AttributeError:
+                styled = df_cmp.style.applymap(color_diff, subset=["증감"])
             st.dataframe(styled, use_container_width=True, hide_index=True)
 
 st.divider()
