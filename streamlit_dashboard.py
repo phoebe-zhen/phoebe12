@@ -716,15 +716,15 @@ def _rise_drop_rows(items, color_class, sign=""):
     rows = ""
     for name, chg in items[:3]:
         rows += (
-            f"<div style='display:flex;align-items:baseline;gap:10px;margin-top:10px'>"
-            f"<span class='{color_class}' style='font-size:14px;font-weight:700'>{sign}{chg}개</span>"
+            f"<div style='display:flex;align-items:baseline;gap:6px;margin-top:10px'>"
             f"<span class='card-sub' style='font-size:14px;color:#444'>{name}</span>"
+            f"<span class='{color_class}' style='font-size:14px;font-weight:700'>({sign}{chg}개)</span>"
             f"</div>"
         )
     return rows
 
 rise_html = _rise_drop_rows(rise_items, "green", sign="+")
-drop_html  = _rise_drop_rows(drop_items, "red",   sign="")
+drop_html  = _rise_drop_rows(drop_items, "red",   sign="-")
 
 c_rise, c_drop = st.columns(2)
 with c_rise:
