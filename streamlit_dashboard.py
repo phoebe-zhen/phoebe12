@@ -564,8 +564,14 @@ for tab, keyword in zip([tab1, tab2], TARGET_PRODUCTS):
         else:
             # ── 요약 박스 ────────────────────────────────────────────────
             core_rows = df_cmp[df_cmp["상태"] == "🔥 핵심"]
-            # 판매 저조: 오늘=0 AND 전일>=3 (상태 라벨 무관)
-            low_rows  = df_cmp[(df_cmp["오늘"] == 0) & (df_cmp["전일"] >= 3)]
+            # 판매 저조: (오늘=0 AND 전일>=3) OR (전일 대비 -70% 이상 감소)
+            def _is_low(row):
+                if row["오늘"] == 0 and row["전일"] >= 3:
+                    return True
+                if row["전일"] > 0 and (row["오늘"] - row["전일"]) / row["전일"] <= -0.7:
+                    return True
+                return False
+            low_rows = df_cmp[df_cmp.apply(_is_low, axis=1)]
             summary_lines = []
             if not core_rows.empty and today_total > 0:
                 core_opt = core_rows.iloc[0]["옵션"]
