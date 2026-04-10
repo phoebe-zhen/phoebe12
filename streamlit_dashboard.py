@@ -582,7 +582,7 @@ for tab, keyword in zip([tab1, tab2], TARGET_PRODUCTS):
                 else:
                     summary_lines.append(f"- 핵심 옵션: **{core_opt}** ({core_qty}개, 전체 {today_total}개 중 {pct}%)")
             for _, row in low_rows.iterrows():
-                summary_lines.append(f"- 판매 저조: **{row['옵션']}** (전일 {row['전일']}개 → 오늘 0개)")
+                summary_lines.append(f"- 판매 저조: **{row['옵션']}** (전일 {row['전일']}개 → 오늘 {row['오늘']}개)")
             if summary_lines:
                 with st.container(border=True):
                     st.markdown("📌 **옵션 요약**")
