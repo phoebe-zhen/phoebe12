@@ -618,6 +618,13 @@ with chart_r:
             continue
     if hourly_rows:
         df_h = pd.DataFrame(hourly_rows).groupby("hour")["amount"].sum().reindex(range(24), fill_value=0)
+        peak_hour = int(df_h.idxmax())
+        peak_val  = int(df_h.max())
+        total_val = int(df_h.sum())
+        if total_val > 0 and peak_val / total_val >= 0.3:
+            st.caption(f"오늘 매출은 {peak_hour}시에 가장 집중되었습니다.")
+        else:
+            st.caption("오늘은 특정 시간 집중 없이 분산된 흐름입니다.")
         df_h.index = [f"{h:02d}시" for h in df_h.index]
         st.line_chart(df_h.rename("매출액 (원)"))
     else:
