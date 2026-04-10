@@ -226,6 +226,12 @@ with col_btn:
         st.cache_data.clear()
         st.rerun()
 
+try:
+    _ip = requests.get("https://api.ipify.org", timeout=5).text
+    st.info(f"현재 서버 IP: `{_ip}`")
+except Exception:
+    pass
+
 # ── 데이터 로딩 ───────────────────────────────────────────────────────────────
 
 with st.spinner("데이터 불러오는 중..."):
