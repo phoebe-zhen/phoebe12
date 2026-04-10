@@ -230,10 +230,43 @@ def build_option_compare_df(today_opts: dict, yest_opts: dict) -> pd.DataFrame:
         rows.append({"옵션": opt, "오늘": t, "전일": y, "증감": diff, "비고": note})
     return pd.DataFrame(rows)
 
-# ── 방문수 placeholder ─────────────────────────────────────────────────────────
-# [방문수 placeholder] 실제 API 연동 시 이 함수를 수정하세요
-def get_current_visitors():
+# ── 방문수 (오늘 보고서 API) ───────────────────────────────────────────────────
+
+def get_channel_no(token: str) -> str | None:
+    """고객 현황(채널) API로 channelNo 자동 조회"""
+    resp = requests.get(
+        f"{BASE_URL}/external/v1/bizdata-stats/channels",
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=10,
+    )
+    if not resp.ok:
+        return None
+    data = resp.json()
+    # 첫 번째 채널 번호 반환
+    channels = data if isinstance(data, list) else data.get("channels", data.get("data", []))
+    if channels:
+        ch = channels[0]
+        return str(ch.get("channelNo") or ch.get("id") or "")
     return None
+
+@st.cache_data(ttl=300)
+def get_current_visitors() -> int | None:
+    try:
+        token = get_access_token()
+        channel_no = get_channel_no(token)
+        if not channel_no:
+            return None
+        resp = requests.get(
+            f"{BASE_URL}/external/v1/bizdata-stats/channels/{channel_no}/realtime/daily",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        if not resp.ok:
+            return None
+        data = resp.json()
+        return int(data.get("numInteraction", 0))
+    except Exception:
+        return None
 
 
 # ── 데이터 로딩 (캐시: 5분) ───────────────────────────────────────────────────
