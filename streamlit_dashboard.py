@@ -393,9 +393,14 @@ st.divider()
 
 # ── 임시 디버깅 ───────────────────────────────────────────────────────────────
 if orders:
-    _o = orders[0].get("productOrder", orders[0])
-    _date_keys = [k for k in _o.keys() if "date" in k.lower() or "time" in k.lower()]
-    st.write("📋 날짜/시간 필드:", _date_keys)
+    _total = len(orders)
+    _has_date = sum(1 for w in orders if w.get("productOrder", w).get("placeOrderDate"))
+    _samples = []
+    for w in orders[:5]:
+        _o2 = w.get("productOrder", w)
+        _samples.append(_o2.get("placeOrderDate"))
+    st.write(f"📋 전체 주문 {_total}건 중 placeOrderDate 있는 건: {_has_date}건")
+    st.write("📋 샘플 값:", _samples)
 
 # ── 2. 상단 KPI ───────────────────────────────────────────────────────────────
 
