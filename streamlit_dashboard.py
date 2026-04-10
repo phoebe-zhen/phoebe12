@@ -220,7 +220,7 @@ def build_option_compare_df(today_opts: dict, yest_opts: dict) -> pd.DataFrame:
         y = yest_opts.get(opt, 0)
         diff = t - y
         if t == max_today and t > 0:
-            note = "🔥 핵심 옵션"
+            note = "🔥 핵심"
         elif diff <= -3:
             note = "⚠ 급감"
         elif diff in (-1, -2):
@@ -229,8 +229,11 @@ def build_option_compare_df(today_opts: dict, yest_opts: dict) -> pd.DataFrame:
             note = "유지"
         else:
             note = "증가"
-        rows.append({"옵션": opt, "오늘": t, "전일": y, "증감": diff, "비고": note})
-    return pd.DataFrame(rows)
+        rows.append({"옵션": opt, "오늘": t, "전일": y, "증감": diff, "상태": note})
+    df = pd.DataFrame(rows)
+    # 오늘 기준 내림차순 정렬 (0개는 하단)
+    df = df.sort_values("오늘", ascending=False).reset_index(drop=True)
+    return df
 
 # ── 방문수 (오늘 보고서 API) ───────────────────────────────────────────────────
 
@@ -520,28 +523,49 @@ for tab, keyword in zip([tab1, tab2], TARGET_PRODUCTS):
         today_total = sum(today_opts.values())
         yest_total  = sum(yest_opts.values())
 
-        st.caption(
-            f"오늘 총 {today_total}개 / 전일 {yest_total}개 / "
-            f"가장 많이 팔린 옵션: {top_opt}"
-        )
-
         df_cmp = build_option_compare_df(today_opts, yest_opts)
 
         if df_cmp.empty:
             st.info("해당 상품 데이터가 없습니다.")
         else:
-            # 증감 색상 적용
-            def color_diff(val):
-                if val > 0:
-                    return "color: #4CAF50; font-weight:600"
-                elif val < 0:
-                    return "color: #f44336; font-weight:600"
-                return ""
+            # ── 요약 박스 ────────────────────────────────────────────────
+            core_rows  = df_cmp[df_cmp["상태"] == "🔥 핵심"]
+            drop_rows  = df_cmp[df_cmp["상태"] == "⚠ 급감"]
+            summary_lines = []
+            if not core_rows.empty and today_total > 0:
+                core_opt = core_rows.iloc[0]["옵션"]
+                core_qty = core_rows.iloc[0]["오늘"]
+                pct = round(core_qty / today_total * 100)
+                summary_lines.append(f"- 핵심 옵션: **{core_opt}** (전체의 {pct}%)")
+            if not drop_rows.empty:
+                for _, row in drop_rows.iterrows():
+                    summary_lines.append(f"- 급감 옵션: **{row['옵션']}** ({row['증감']:+d})")
+            if summary_lines:
+                with st.container(border=True):
+                    st.markdown("📌 **옵션 요약**")
+                    st.markdown("\n".join(summary_lines))
 
-            try:
-                styled = df_cmp.style.map(color_diff, subset=["증감"])
-            except AttributeError:
-                styled = df_cmp.style.applymap(color_diff, subset=["증감"])
+            # ── 테이블 스타일 ─────────────────────────────────────────────
+            def style_row(row):
+                styles = [""] * len(row)
+                idx_opt   = row.index.get_loc("옵션")
+                idx_state = row.index.get_loc("상태")
+                idx_diff  = row.index.get_loc("증감")
+                if row["상태"] == "🔥 핵심":
+                    styles[idx_opt]   = "font-weight:700; color:#E65100"
+                    styles[idx_state] = "font-weight:700; color:#E65100"
+                elif row["상태"] == "⚠ 급감":
+                    styles[idx_opt]   = "color:#c62828"
+                    styles[idx_state] = "color:#c62828; font-weight:600"
+                else:
+                    styles[idx_state] = "color:#9e9e9e"
+                if row["증감"] > 0:
+                    styles[idx_diff] = "color:#4CAF50; font-weight:600"
+                elif row["증감"] < 0:
+                    styles[idx_diff] = "color:#f44336; font-weight:600"
+                return styles
+
+            styled = df_cmp.style.apply(style_row, axis=1)
             st.dataframe(styled, use_container_width=True, hide_index=True)
 
 st.divider()
