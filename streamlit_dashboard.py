@@ -538,10 +538,16 @@ for tab, keyword in zip([tab1, tab2], TARGET_PRODUCTS):
                 core_opt = core_rows.iloc[0]["옵션"]
                 core_qty = core_rows.iloc[0]["오늘"]
                 pct = round(core_qty / today_total * 100)
-                summary_lines.append(f"- 핵심 옵션: **{core_opt}** (전체의 {pct}%)")
+                if pct >= 70:
+                    summary_lines.append(f"- 판매 집중: **{core_opt}** ({core_qty}개, {pct}%)")
+                else:
+                    summary_lines.append(f"- 핵심 옵션: **{core_opt}** ({core_qty}개, {pct}%)")
             if not drop_rows.empty:
                 for _, row in drop_rows.iterrows():
-                    summary_lines.append(f"- 급감 옵션: **{row['옵션']}** ({row['증감']:+d})")
+                    if row["전일"] > 0 and row["오늘"] == 0:
+                        summary_lines.append(f"- 판매 중단: **{row['옵션']}** (전일 {row['전일']} → 오늘 0)")
+                    else:
+                        summary_lines.append(f"- 급감: **{row['옵션']}** ({row['증감']:+d})")
             if summary_lines:
                 with st.container(border=True):
                     st.markdown("📌 **옵션 요약**")
