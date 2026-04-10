@@ -724,7 +724,7 @@ def _rise_drop_rows(items, color_class, sign=""):
     return rows
 
 rise_html = _rise_drop_rows(rise_items, "green", sign="+")
-drop_html  = _rise_drop_rows(drop_items, "red",   sign="-")
+drop_html  = _rise_drop_rows([(n, abs(c)) for n, c in drop_items], "red", sign="-")
 
 c_rise, c_drop = st.columns(2)
 with c_rise:
