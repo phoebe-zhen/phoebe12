@@ -738,7 +738,7 @@ with chart_r:
         else:
             st.caption("오늘은 특정 시간 집중 없이 분산된 흐름입니다.")
         df_h.index = [f"{h:02d}시" for h in df_h.index]
-        st.line_chart(df_h.rename("매출액 (원)"))
+        st.bar_chart(df_h.rename("매출액 (원)"))
     else:
         st.info("시간대별 데이터가 아직 충분하지 않습니다.")
 
