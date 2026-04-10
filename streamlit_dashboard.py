@@ -706,20 +706,32 @@ drop_items.sort(key=lambda x: x[1])
 
 c_rise, c_drop = st.columns(2)
 with c_rise:
-    st.markdown("##### 📈 오늘 급상승 상품")
-    if rise_items:
-        for name, chg in rise_items[:3]:
-            st.markdown(f"<span class='green'>+{chg}개</span> {name}", unsafe_allow_html=True)
-    else:
-        st.caption("해당 없음")
+    with st.container(border=True):
+        st.markdown("##### 📈 오늘 급상승 상품")
+        if rise_items:
+            for name, chg in rise_items[:3]:
+                st.markdown(
+                    f"<span class='green' style='font-size:1.1rem;font-weight:700'>+{chg}개</span>"
+                    f"&nbsp;&nbsp;<span style='font-size:0.95rem'>{name}</span>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown("<div style='margin-bottom:6px'></div>", unsafe_allow_html=True)
+        else:
+            st.caption("해당 없음")
 
 with c_drop:
-    st.markdown("##### 📉 오늘 급감 상품")
-    if drop_items:
-        for name, chg in drop_items[:3]:
-            st.markdown(f"<span class='red'>{chg}개</span> {name}", unsafe_allow_html=True)
-    else:
-        st.caption("해당 없음")
+    with st.container(border=True):
+        st.markdown("##### 📉 오늘 급감 상품")
+        if drop_items:
+            for name, chg in drop_items[:3]:
+                st.markdown(
+                    f"<span class='red' style='font-size:1.1rem;font-weight:700'>{chg}개</span>"
+                    f"&nbsp;&nbsp;<span style='font-size:0.95rem'>{name}</span>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown("<div style='margin-bottom:6px'></div>", unsafe_allow_html=True)
+        else:
+            st.caption("해당 없음")
 
 st.divider()
 
