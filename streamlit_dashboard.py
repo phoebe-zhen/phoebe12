@@ -704,34 +704,38 @@ for name, t_qty in today_sales.items():
 rise_items.sort(key=lambda x: -x[1])
 drop_items.sort(key=lambda x: x[1])
 
+def _rise_drop_rows(items, color_class, sign=""):
+    if not items:
+        return "<div class='card-sub' style='margin-top:8px;color:#bbb'>해당 없음</div>"
+    rows = ""
+    for name, chg in items[:3]:
+        rows += (
+            f"<div style='display:flex;align-items:baseline;gap:10px;margin-top:10px'>"
+            f"<span class='{color_class}' style='font-size:28px;font-weight:700;line-height:1'>{sign}{chg}개</span>"
+            f"<span class='card-sub' style='font-size:14px;color:#444'>{name}</span>"
+            f"</div>"
+        )
+    return rows
+
+rise_html = _rise_drop_rows(rise_items, "green", sign="+")
+drop_html  = _rise_drop_rows(drop_items, "red",   sign="")
+
 c_rise, c_drop = st.columns(2)
 with c_rise:
-    with st.container(border=True):
-        st.markdown("##### 📈 오늘 급상승 상품")
-        if rise_items:
-            for name, chg in rise_items[:3]:
-                st.markdown(
-                    f"<span class='green' style='font-size:1.1rem;font-weight:700'>+{chg}개</span>"
-                    f"&nbsp;&nbsp;<span style='font-size:0.95rem'>{name}</span>",
-                    unsafe_allow_html=True,
-                )
-                st.markdown("<div style='margin-bottom:6px'></div>", unsafe_allow_html=True)
-        else:
-            st.caption("해당 없음")
+    st.markdown(f"""
+    <div class="card" style="min-height:160px">
+        <div class="card-title">📈 오늘 급상승 상품</div>
+        {rise_html}
+    </div>
+    """, unsafe_allow_html=True)
 
 with c_drop:
-    with st.container(border=True):
-        st.markdown("##### 📉 오늘 급감 상품")
-        if drop_items:
-            for name, chg in drop_items[:3]:
-                st.markdown(
-                    f"<span class='red' style='font-size:1.1rem;font-weight:700'>{chg}개</span>"
-                    f"&nbsp;&nbsp;<span style='font-size:0.95rem'>{name}</span>",
-                    unsafe_allow_html=True,
-                )
-                st.markdown("<div style='margin-bottom:6px'></div>", unsafe_allow_html=True)
-        else:
-            st.caption("해당 없음")
+    st.markdown(f"""
+    <div class="card" style="min-height:160px">
+        <div class="card-title">📉 오늘 급감 상품</div>
+        {drop_html}
+    </div>
+    """, unsafe_allow_html=True)
 
 st.divider()
 
