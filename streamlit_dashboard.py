@@ -545,9 +545,9 @@ for tab, keyword in zip([tab1, tab2], TARGET_PRODUCTS):
             if not drop_rows.empty:
                 for _, row in drop_rows.iterrows():
                     if row["전일"] > 0 and row["오늘"] == 0:
-                        summary_lines.append(f"- 판매 중단: **{row['옵션']}** (전일 {row['전일']} → 오늘 0)")
+                        summary_lines.append(f"- 판매 없음: **{row['옵션']}** (오늘 0개, 전일 {row['전일']}개)")
                     else:
-                        summary_lines.append(f"- 급감: **{row['옵션']}** ({row['증감']:+d})")
+                        summary_lines.append(f"- 급감: **{row['옵션']}** (오늘 {row['오늘']}개, 전일 {row['전일']}개)")
             if summary_lines:
                 with st.container(border=True):
                     st.markdown("📌 **옵션 요약**")
