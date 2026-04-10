@@ -220,13 +220,15 @@ def build_option_compare_df(today_opts: dict, yest_opts: dict) -> pd.DataFrame:
         y = yest_opts.get(opt, 0)
         diff = t - y
         if t == max_today and t > 0:
-            note = "오늘 최다"
-        elif diff > 0:
-            note = "증가"
-        elif diff < 0:
+            note = "🔥 핵심 옵션"
+        elif diff <= -3:
+            note = "⚠ 급감"
+        elif diff in (-1, -2):
             note = "감소"
-        else:
+        elif diff == 0:
             note = "유지"
+        else:
+            note = "증가"
         rows.append({"옵션": opt, "오늘": t, "전일": y, "증감": diff, "비고": note})
     return pd.DataFrame(rows)
 
