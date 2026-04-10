@@ -436,11 +436,14 @@ with k1:
     <div class="card">
         <div class="card-title">💰 오늘 매출</div>
         <div class="card-value">₩{total_revenue:,}</div>
-        <div class="card-sub">전일 대비 <span class="{rev_color}">{rev_diff}</span> · 어제 ₩{yesterday_revenue:,}</div>
+        <div class="card-sub">전일 ₩{yesterday_revenue:,} · <span class="{rev_color}">{rev_diff}</span></div>
     </div>
     """, unsafe_allow_html=True)
 
 with k2:
+    _yest_valid_orders = yest_total_orders - yest_excluded_count
+    _order_diff = f"{(valid_orders - _yest_valid_orders) / _yest_valid_orders * 100:+.1f}%" if _yest_valid_orders > 0 else "-"
+    _order_color = "red" if valid_orders < _yest_valid_orders else "green"
     _cancel_sub = f"취소·반품 {excluded_count}건 ({cancel_rate_today:.1f}%)"
     if cancel_rate_yest is not None:
         _cancel_sub += f" · 전일 {cancel_rate_yest:.1f}%"
@@ -455,6 +458,7 @@ with k2:
     <div class="card">
         <div class="card-title">📋 오늘 주문수</div>
         <div class="card-value">{valid_orders}건</div>
+        <div class="card-sub">전일 {_yest_valid_orders}건 · <span class="{_order_color}">{_order_diff}</span></div>
         <div class="card-sub">{_cancel_sub}</div>
     </div>
     """, unsafe_allow_html=True)
@@ -465,17 +469,14 @@ with k3:
     <div class="card">
         <div class="card-title">📦 오늘 판매수량</div>
         <div class="card-value">{total_qty}개</div>
-        <div class="card-sub">전일 대비 <span class="{qty_color}">{qty_diff}</span></div>
+        <div class="card-sub">전일 {yest_qty}개 · <span class="{qty_color}">{qty_diff}</span></div>
     </div>
     """, unsafe_allow_html=True)
 
 with k4:
-    _aov_parts = []
-    if yest_aov > 0:
-        _aov_parts.append(f"전일 ₩{yest_aov:,}")
-    if avg_7days_aov:
-        _aov_parts.append(f"7일 평균 ₩{avg_7days_aov:,}")
-    _aov_sub = " · ".join(_aov_parts) if _aov_parts else "&nbsp;"
+    _aov_diff = f"{(aov - yest_aov) / yest_aov * 100:+.1f}%" if yest_aov > 0 else "-"
+    _aov_color = "red" if aov < yest_aov else "green"
+    _aov_sub = f"전일 ₩{yest_aov:,} · <span class='{_aov_color}'>{_aov_diff}</span>" if yest_aov > 0 else "&nbsp;"
     st.markdown(f"""
     <div class="card">
         <div class="card-title">🧾 객단가</div>
