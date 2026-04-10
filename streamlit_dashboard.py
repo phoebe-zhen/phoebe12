@@ -723,7 +723,7 @@ drop_html  = _rise_drop_rows(drop_items, "red",   sign="")
 c_rise, c_drop = st.columns(2)
 with c_rise:
     st.markdown(f"""
-    <div class="card" style="min-height:160px">
+    <div class="card" style="height:170px">
         <div class="card-title">📈 오늘 급상승 상품</div>
         {rise_html}
     </div>
@@ -731,7 +731,7 @@ with c_rise:
 
 with c_drop:
     st.markdown(f"""
-    <div class="card" style="min-height:160px">
+    <div class="card" style="height:170px">
         <div class="card-title">📉 오늘 급감 상품</div>
         {drop_html}
     </div>
