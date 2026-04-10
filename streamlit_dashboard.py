@@ -563,8 +563,9 @@ for tab, keyword in zip([tab1, tab2], TARGET_PRODUCTS):
             st.info("해당 상품 데이터가 없습니다.")
         else:
             # ── 요약 박스 ────────────────────────────────────────────────
-            core_rows  = df_cmp[df_cmp["상태"] == "🔥 핵심"]
-            drop_rows  = df_cmp[df_cmp["상태"] == "⚠ 급감"]
+            core_rows = df_cmp[df_cmp["상태"] == "🔥 핵심"]
+            # 판매 저조: 오늘=0 AND 전일>=3 (상태 라벨 무관)
+            low_rows  = df_cmp[(df_cmp["오늘"] == 0) & (df_cmp["전일"] >= 3)]
             summary_lines = []
             if not core_rows.empty and today_total > 0:
                 core_opt = core_rows.iloc[0]["옵션"]
@@ -574,12 +575,8 @@ for tab, keyword in zip([tab1, tab2], TARGET_PRODUCTS):
                     summary_lines.append(f"- 판매 집중: **{core_opt}** ({core_qty}개, 전체 {today_total}개 중 {pct}%)")
                 else:
                     summary_lines.append(f"- 핵심 옵션: **{core_opt}** ({core_qty}개, 전체 {today_total}개 중 {pct}%)")
-            if not drop_rows.empty:
-                for _, row in drop_rows.iterrows():
-                    if row["전일"] > 0 and row["오늘"] == 0:
-                        summary_lines.append(f"- 판매 저조: **{row['옵션']}** (전일 {row['전일']}개 → 오늘 0개)")
-                    else:
-                        summary_lines.append(f"- 급감: **{row['옵션']}** (전일 {row['전일']}개 → 오늘 {row['오늘']}개)")
+            for _, row in low_rows.iterrows():
+                summary_lines.append(f"- 판매 저조: **{row['옵션']}** (전일 {row['전일']}개 → 오늘 0개)")
             if summary_lines:
                 with st.container(border=True):
                     st.markdown("📌 **옵션 요약**")
