@@ -558,19 +558,21 @@ daily_avg    = weekly_rev // len(weekly_data) if weekly_data else 0
 col_y, col_w = st.columns(2)
 
 with col_y:
-    st.markdown("##### 📅 전일 판매 요약")
-    y1, y2, y3 = st.columns(3)
-    y1.metric("매출", f"₩{yesterday_revenue:,}")
-    y2.metric("주문수", f"{yest_valid}건")
-    y3.metric("판매수량", f"{yest_qty}개")
+    with st.container(border=True):
+        st.markdown("##### 📅 전일 판매 요약")
+        y1, y2, y3 = st.columns(3)
+        y1.metric("매출", f"₩{yesterday_revenue:,}")
+        y2.metric("주문수", f"{yest_valid}건")
+        y3.metric("판매수량", f"{yest_qty}개")
 
 with col_w:
-    st.markdown("##### 📆 최근 7일 요약")
-    w1, w2, w3, w4 = st.columns(4)
-    w1.metric("주간 매출", f"₩{weekly_rev:,}")
-    w2.metric("주간 주문수", f"{weekly_cnt}건")
-    w3.metric("주간 판매수량", f"{weekly_qty_s}개")
-    w4.metric("일평균 매출", f"₩{daily_avg:,}")
+    with st.container(border=True):
+        st.markdown("##### 📆 최근 7일 요약")
+        w1, w2, w3, w4 = st.columns(4)
+        w1.metric("주간 매출", f"₩{weekly_rev:,}")
+        w2.metric("주간 주문수", f"{weekly_cnt}건")
+        w3.metric("주간 판매수량", f"{weekly_qty_s}개")
+        w4.metric("일평균 매출", f"₩{daily_avg:,}")
 
 # 해석 문장
 if daily_avg > 0:
