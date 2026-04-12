@@ -391,16 +391,13 @@ with st.expander("🔧 디버그 정보"):
 st.divider()
 
 
-# ── 임시 디버깅 ───────────────────────────────────────────────────────────────
-if orders:
-    _total = len(orders)
-    _has_date = sum(1 for w in orders if w.get("productOrder", w).get("placeOrderDate"))
-    _samples = []
-    for w in orders[:5]:
-        _o2 = w.get("productOrder", w)
-        _samples.append(_o2.get("placeOrderDate"))
-    st.write(f"📋 전체 주문 {_total}건 중 placeOrderDate 있는 건: {_has_date}건")
-    st.write("📋 샘플 값:", _samples)
+# ── 임시 디버깅: 현재 서버 IP 확인 ───────────────────────────────────────────
+try:
+    import requests as _req
+    _ip = _req.get("https://api.ipify.org", timeout=5).text
+    st.info(f"현재 서버 IP: {_ip}")
+except Exception:
+    st.warning("IP 확인 실패")
 
 # ── 2. 상단 KPI ───────────────────────────────────────────────────────────────
 
