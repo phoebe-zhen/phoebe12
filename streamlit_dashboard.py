@@ -359,7 +359,13 @@ with st.spinner("데이터 불러오는 중..."):
     try:
         orders, fetched_at = load_today_data()
     except Exception as e:
-        st.error(f"데이터 로딩 실패: {e}")
+        try:
+            import requests as _req
+            _ip = _req.get("https://api.ipify.org", timeout=5).text
+            st.error(f"데이터 로딩 실패: {e}")
+            st.info(f"현재 서버 IP: **{_ip}** → 네이버 API센터에 이 IP를 등록해주세요.")
+        except Exception:
+            st.error(f"데이터 로딩 실패: {e}")
         st.stop()
     yesterday_orders = load_yesterday_data()
     weekly_data      = load_weekly_data()
